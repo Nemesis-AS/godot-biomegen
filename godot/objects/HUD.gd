@@ -14,7 +14,7 @@ func _ready() -> void:
 		toggle_visibility()
 		return
 	
-	distSlider.value = map.view_distance
+	distSlider.set_value_no_signal(map.view_distance)
 	menuToggleBtn.connect("pressed", _on_menuToggleBtn_pressed)
 	distSlider.connect("value_changed", _on_distSlider_input)
 

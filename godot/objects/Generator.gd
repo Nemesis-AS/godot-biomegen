@@ -214,6 +214,7 @@ var alt_noise: FastNoiseLite = FastNoiseLite.new()
 var temp_noise: FastNoiseLite = FastNoiseLite.new()
 var hum_noise: FastNoiseLite = FastNoiseLite.new()
 
+var prev_chunks: Dictionary = {}
 var generated_chunks: Dictionary = {}
 
 func _ready() -> void:
@@ -243,6 +244,10 @@ func _initialize_noise(map_seed: int) -> void:
 	hum_noise.seed = map_seed * 3
 
 func generate_world(ref: Vector2) -> void:
+	# Mark current chunks as previous
+	prev_chunks = generated_chunks
+	generated_chunks = {}
+	
 	# Get the chunk the camera is in
 	var ref_coord = Vector2i(int(ref.x / (chunk_size.x * tile_size.x)), int(ref.y / (chunk_size.y * tile_size.y)))
 	
@@ -254,10 +259,16 @@ func generate_world(ref: Vector2) -> void:
 				ref_coord.y + y
 			)
 			
-			if generated_chunks.has(chunk_coord):
+			if prev_chunks.has(chunk_coord):
+				generated_chunks[chunk_coord] = 1
+				prev_chunks.erase(chunk_coord)
 				continue
 			
 			generate_chunk(chunk_coord)
+	
+	# Clear chunks previously generated that are outside view distance
+	for coord in prev_chunks:
+		clear_chunk(coord)
 
 func generate_chunk(chunk_coord: Vector2i) -> void:
 	var offset = Vector2(chunk_coord.x * chunk_size.x, chunk_coord.y * chunk_size.y)
@@ -277,6 +288,16 @@ func generate_chunk(chunk_coord: Vector2i) -> void:
 			self.set_cell(0, Vector2i(x, y), 0, biome_coord)
 	
 	generated_chunks[chunk_coord] = 1
+
+func clear_chunk(chunk_coord: Vector2i) -> void:
+	var offset = Vector2(chunk_coord.x * chunk_size.x, chunk_coord.y * chunk_size.y)
+	
+	for ry in range(chunk_size.y):
+		var y = offset.y + ry
+		for rx in range(chunk_size.x):
+			var x = offset.x + rx
+			
+			self.erase_cell(0, Vector2i(x, y))
 
 func get_biome(altitude: float, temperature: float, humidity: float) -> String:
 	var alt_key = int((altitude / 0.5) + 2)
